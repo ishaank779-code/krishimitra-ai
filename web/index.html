@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KrishiMitra AI - Smart Crop Yield Predictor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            dark: { 900:'#070b07', 800:'#0c140c', 700:'#121c12', 600:'#1a2a1a', 500:'#243424' },
+            accent: { green:'#22c55e', lime:'#84cc16', emerald:'#10b981' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
+    body { background: #070b07; color: #e2e8e0; margin: 0; }
+    .glass { background: rgba(12,20,12,0.9); border: 1px solid rgba(34,197,94,0.15); backdrop-filter: blur(14px); }
+    .card-glow { box-shadow: 0 0 40px rgba(34,197,94,0.07); }
+    .sidebar-item { transition: all 0.2s; }
+    .sidebar-item.active, .sidebar-item:hover { background: rgba(34,197,94,0.18); color: #22c55e; }
+    .scrollbar-hide::-webkit-scrollbar { width: 4px; }
+    .scrollbar-hide::-webkit-scrollbar-thumb { background: rgba(34,197,94,0.3); border-radius: 4px; }
+    .chat-user { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.25); }
+    .chat-ai { background: rgba(18,28,18,0.95); border: 1px solid rgba(80,100,80,0.25); }
+    .progress-ring { transform: rotate(-90deg); }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: #22c55e !important; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .btn-primary { background: #22c55e; color: #070b07; font-weight: 600; }
+    .btn-primary:hover { background: #16a34a; }
+    .btn-outline { border: 1px solid rgba(34,197,94,0.4); color: #22c55e; }
+    .btn-outline:hover { background: rgba(34,197,94,0.15); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    a.link-uncodemy { color: #22c55e; text-decoration: underline; }
+    a.link-uncodemy:hover { color: #4ade80; }
+  </style>
+</head>
+<body class="min-h-screen flex">
+
+  <!-- LOGIN MODAL -->
+  <div id="login-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md">
+    <div class="glass rounded-2xl p-8 w-full max-w-md card-glow mx-4">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-11 h-11 rounded-xl bg-accent-green/20 flex items-center justify-center">
+          <svg class="w-6 h-6 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-white">KrishiMitra AI</h1>
+          <p class="text-xs text-gray-400">Smart Crop Yield Predictor</p>
+        </div>
+      </div>
+      <form id="login-form" class="space-y-4">
+        <div>
+          <label class="text-xs text-gray-400 mb-1 block">Email</label>
+          <input type="email" id="login-email" value="rahul@krishimitra.ai" class="w-full bg-dark-700 border border-green-900/40 rounded-lg px-4 py-2.5 text-sm text-white" required />
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 mb-1 block">Password</label>
+          <input type="password" id="login-password" value="rahul123" class="w-full bg-dark-700 border border-green-900/40 rounded-lg px-4 py-2.5 text-sm text-white" required />
+        </div>
+        <button type="submit" class="w-full btn-primary py-2.5 rounded-lg transition">Login to Dashboard</button>
+        <p class="text-xs text-center text-gray-500">Demo → rahul@krishimitra.ai / rahul123</p>
+        <p id="login-error" class="text-xs text-red-400 text-center hidden"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside class="w-16 lg:w-56 bg-dark-900 border-r border-green-900/25 flex flex-col py-4 shrink-0">
+    <div class="flex items-center gap-2.5 px-4 mb-8">
+      <div class="w-9 h-9 rounded-xl bg-accent-green/20 flex items-center justify-center shrink-0">
+        <svg class="w-5 h-5 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+      </div>
+      <span class="hidden lg:block font-bold text-white text-sm tracking-tight">KrishiMitra AI</span>
+    </div>
+    <nav class="flex-1 space-y-1 px-2">
+      <button onclick="showPage('dashboard')" class="sidebar-item active w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300" data-page="dashboard">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+        <span class="hidden lg:block">Dashboard</span>
+      </button>
+      <button onclick="showPage('fields')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400" data-page="fields">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span class="hidden lg:block">Fields</span>
+      </button>
+      <button onclick="showPage('chat')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400" data-page="chat">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        <span class="hidden lg:block">AI Chat</span>
+      </button>
+      <button onclick="showPage('analytics')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400" data-page="analytics">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        <span class="hidden lg:block">Analytics</span>
+      </button>
+      <button onclick="showPage('learn')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400" data-page="learn">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        <span class="hidden lg:block">Learn ML</span>
+      </button>
+      <button onclick="showPage('profile')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400" data-page="profile">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        <span class="hidden lg:block">Profile</span>
+      </button>
+    </nav>
+    <div class="px-3 mt-auto">
+      <button onclick="logout()" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        <span class="hidden lg:block">Logout</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="flex-1 flex flex-col min-h-screen overflow-hidden">
+    <header class="h-14 border-b border-green-900/25 flex items-center justify-between px-4 lg:px-6 bg-dark-900/90 shrink-0">
+      <div class="relative w-full max-w-xs">
+        <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input type="text" id="global-search" placeholder="Search crops, fields, pests..." class="w-full bg-dark-700 border border-green-900/30 rounded-lg pl-9 pr-4 py-1.5 text-sm text-gray-300 placeholder-gray-500" onkeyup="handleSearch(event)" />
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="showPage('chat')" class="relative p-1.5 rounded-lg hover:bg-dark-600">
+          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+        </button>
+        <div class="flex items-center gap-2 cursor-pointer" onclick="showPage('profile')">
+          <div class="w-8 h-8 rounded-full bg-accent-green/30 flex items-center justify-center text-accent-green text-sm font-semibold" id="user-avatar">R</div>
+          <span class="hidden sm:block text-sm text-gray-300" id="user-name">Farmer Rahul</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-4 lg:p-6 scrollbar-hide">
+
+      <!-- DASHBOARD -->
+      <div id="page-dashboard" class="page active space-y-4">
+        <div class="flex items-center justify-between mb-2">
+          <h1 class="text-lg font-semibold text-white">Dashboard Overview</h1>
+          <span class="text-xs text-gray-500" id="last-updated">Last updated: just now</span>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="glass rounded-xl p-4 card-glow"><div class="text-xs text-gray-400 mb-1">Predicted Yield</div><div class="text-2xl font-bold text-accent-green" id="stat-yield">6.8</div><div class="text-xs text-gray-500">Tons/Hectare</div></div>
+          <div class="glass rounded-xl p-4 card-glow"><div class="text-xs text-gray-400 mb-1">Soil Moisture</div><div class="text-2xl font-bold text-white" id="stat-moisture">58.5%</div><div class="text-xs text-accent-green">Optimal</div></div>
+          <div class="glass rounded-xl p-4 card-glow"><div class="text-xs text-gray-400 mb-1">Temperature</div><div class="text-2xl font-bold text-white" id="stat-temp">28°C</div><div class="text-xs text-gray-500">Partly Cloudy</div></div>
+          <div class="glass rounded-xl p-4 card-glow"><div class="text-xs text-gray-400 mb-1">Active Fields</div><div class="text-2xl font-bold text-white" id="stat-fields">3</div><div class="text-xs text-accent-green">All Optimal</div></div>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div class="glass rounded-2xl p-5 card-glow">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-sm font-semibold text-white">Crop Yield Predictions</h2>
+              <button onclick="refreshYield()" class="btn-outline px-2 py-0.5 rounded text-xs">Refresh</button>
+            </div>
+            <div class="flex gap-4">
+              <div class="flex-1"><canvas id="barChart" height="180"></canvas></div>
+              <div class="w-36 flex flex-col items-center justify-center">
+                <div class="text-3xl font-bold text-accent-green" id="yield-big">6.8</div>
+                <div class="text-xs text-gray-400">Tons/Hectare</div>
+                <canvas id="lineMiniChart" height="70" class="w-full mt-3"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="glass rounded-2xl p-5 card-glow">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-sm font-semibold text-white">Soil Moisture Analysis</h2>
+              <span class="bg-accent-green/20 text-accent-green text-xs px-2 py-0.5 rounded">Live</span>
+            </div>
+            <div class="flex gap-5 items-center">
+              <div class="relative w-32 h-32 shrink-0">
+                <svg class="w-32 h-32 progress-ring" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="#1a2a1a" stroke-width="9"/>
+                  <circle id="moisture-circle" cx="50" cy="50" r="40" fill="none" stroke="#22c55e" stroke-width="9" stroke-dasharray="251.2" stroke-dashoffset="104" stroke-linecap="round"/>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                  <span class="text-2xl font-bold text-white" id="moisture-pct">58.5%</span>
+                  <span class="text-[10px] text-accent-green">Optimal</span>
+                </div>
+              </div>
+              <div class="flex-1 space-y-3 text-sm">
+                <div class="flex justify-between"><span class="text-gray-400">pH Level</span><span class="font-semibold" id="soil-ph">6.2</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">NPK Status</span><span class="text-accent-green font-semibold">Balanced</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">Nitrogen (N)</span><span>45 ppm</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">Phosphorus (P)</span><span>30 ppm</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">Potassium (K)</span><span>40 ppm</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="glass rounded-2xl p-5 card-glow">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h2 class="text-sm font-semibold text-white">Alpha Farm</h2>
+                <div class="flex items-center gap-1.5 mt-0.5"><span class="status-dot bg-accent-green"></span><span class="text-xs text-accent-green">Status Optimal</span></div>
+              </div>
+              <button onclick="showPage('fields')" class="text-xs text-accent-green hover:underline">View All →</button>
+            </div>
+            <div class="text-2xl font-bold text-white mb-2">6.8 <span class="text-sm font-normal text-gray-400">Tons</span></div>
+            <canvas id="fieldChart" height="90"></canvas>
+          </div>
+          <div class="glass rounded-2xl p-5 card-glow flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-sm font-semibold text-white">AI Quick Help</h2>
+              <button onclick="showPage('chat')" class="text-xs text-accent-green hover:underline">Full Chat →</button>
+            </div>
+            <div id="quick-chat" class="flex-1 space-y-2 overflow-y-auto max-h-40 scrollbar-hide text-sm mb-3">
+              <div class="chat-ai rounded-lg px-3 py-2 text-xs">Namaste! Ask me about pests, irrigation or yield.</div>
+            </div>
+            <div class="flex gap-2">
+              <input type="text" id="quick-input" placeholder="Ask something..." class="flex-1 bg-dark-700 border border-green-900/30 rounded-lg px-3 py-2 text-sm" onkeypress="if(event.key==='Enter')sendQuickChat()" />
+              <button onclick="sendQuickChat()" class="w-9 h-9 rounded-full bg-accent-green flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-dark-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="glass rounded-2xl p-5 card-glow">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-sm font-semibold text-white">Weather</h2>
+              <span class="text-xs text-gray-400">Karnal, India</span>
+            </div>
+            <div class="flex items-center gap-3 mb-4">
+              <div class="text-4xl">⛅</div>
+              <div>
+                <div class="text-3xl font-bold text-white">28°C</div>
+                <div class="text-xs text-gray-400">Partly Cloudy</div>
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center text-xs mb-3">
+              <div><div class="text-gray-500">Mon</div><div class="font-medium text-white">29°</div></div>
+              <div><div class="text-gray-500">Tue</div><div class="font-medium text-white">27°</div></div>
+              <div><div class="text-gray-500">Wed</div><div class="font-medium text-white">26°</div></div>
+            </div>
+            <div class="space-y-1.5 text-sm">
+              <div class="flex justify-between"><span class="text-gray-400">Humidity</span><span>65%</span></div>
+              <div class="flex justify-between"><span class="text-gray-400">Wind</span><span>12 km/h</span></div>
+              <div class="flex justify-between"><span class="text-gray-400">Rain Chance</span><span>20%</span></div>
+            </div>
+            <div class="mt-3 flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+              <span class="text-red-400 text-xs">⚠️ Weather warning active</span>
+            </div>
+          </div>
+        </div>
+        <div class="glass rounded-2xl p-5 card-glow border border-accent-green/20">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h3 class="text-sm font-semibold text-white mb-1">🚀 Upskill with Machine Learning</h3>
+              <p class="text-xs text-gray-400">Learn how AI & ML power this crop yield predictor.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <a href="https://uncodemy.com/course/machine-learning-training-course-in-noida" target="_blank" rel="noopener" class="btn-primary text-xs px-4 py-2 rounded-lg">ML Course – Noida</a>
+              <a href="https://uncodemy.com/course/machine-learning-training-course-in-delhi" target="_blank" rel="noopener" class="btn-outline text-xs px-4 py-2 rounded-lg">ML Course – Delhi</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FIELDS -->
+      <div id="page-fields" class="page space-y-4">
+        <div class="flex items-center justify-between">
+          <h1 class="text-lg font-semibold text-white">My Fields</h1>
+          <button onclick="alert('Add Field feature coming soon!')" class="btn-primary text-sm px-4 py-2 rounded-lg">+ Add Field</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" id="fields-grid"></div>
+      </div>
+
+      <!-- CHAT -->
+      <div id="page-chat" class="page">
+        <div class="glass rounded-2xl card-glow flex flex-col" style="height: calc(100vh - 8rem);">
+          <div class="border-b border-green-900/25 px-5 py-3 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-accent-green/20 flex items-center justify-center">
+              <svg class="w-5 h-5 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            </div>
+            <div>
+              <div class="text-sm font-semibold text-white">KrishiMitra AI Assistant</div>
+              <div class="text-xs text-accent-green">Online • Ready to help</div>
+            </div>
+          </div>
+          <div id="full-chat-messages" class="flex-1 overflow-y-auto p-5 space-y-4 scrollbar-hide"></div>
+          <div class="border-t border-green-900/25 p-4">
+            <div class="flex flex-wrap gap-2 mb-3">
+              <button onclick="askAI('Pest on tomato leaves')" class="text-xs bg-dark-600 hover:bg-dark-500 px-3 py-1.5 rounded-full text-gray-300">🍅 Tomato pest</button>
+              <button onclick="askAI('How to improve yield?')" class="text-xs bg-dark-600 hover:bg-dark-500 px-3 py-1.5 rounded-full text-gray-300">📈 Improve yield</button>
+              <button onclick="askAI('Irrigation advice')" class="text-xs bg-dark-600 hover:bg-dark-500 px-3 py-1.5 rounded-full text-gray-300">💧 Irrigation</button>
+              <button onclick="askAI('Fertilizer recommendation')" class="text-xs bg-dark-600 hover:bg-dark-500 px-3 py-1.5 rounded-full text-gray-300">🌿 Fertilizer</button>
+            </div>
+            <div class="flex gap-2">
+              <input type="text" id="full-chat-input" placeholder="Type your farming question..." class="flex-1 bg-dark-700 border border-green-900/30 rounded-xl px-4 py-3 text-sm" onkeypress="if(event.key==='Enter')sendFullChat()" />
+              <button onclick="sendFullChat()" class="btn-primary px-5 rounded-xl">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS -->
+      <div id="page-analytics" class="page space-y-4">
+        <h1 class="text-lg font-semibold text-white mb-2">Analytics & Insights</h1>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="glass rounded-2xl p-5 card-glow">
+            <h2 class="text-sm font-semibold text-white mb-4">Yield Trend (Last 10 Months)</h2>
+            <canvas id="analyticsYieldChart" height="220"></canvas>
+          </div>
+          <div class="glass rounded-2xl p-5 card-glow">
+            <h2 class="text-sm font-semibold text-white mb-4">Crop Comparison</h2>
+            <canvas id="analyticsBarChart" height="220"></canvas>
+          </div>
+        </div>
+        <div class="glass rounded-2xl p-5 card-glow">
+          <h2 class="text-sm font-semibold text-white mb-3">Key Insights</h2>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li class="flex gap-2"><span class="text-accent-green">●</span> Rice yield is projected 9.7% higher than last year.</li>
+            <li class="flex gap-2"><span class="text-accent-green">●</span> Soil moisture is in optimal range — no irrigation needed for 3 days.</li>
+            <li class="flex gap-2"><span class="text-yellow-400">●</span> Watch for aphids on tomato crop this week.</li>
+            <li class="flex gap-2"><span class="text-accent-green">●</span> NPK levels are balanced. Next fertilizer dose after 12 days.</li>
+          </ul>
+        </div>
+        <div class="glass rounded-2xl p-5 card-glow border border-accent-green/20">
+          <h3 class="text-sm font-semibold text-white mb-2">Want to build models like this?</h3>
+          <p class="text-xs text-gray-400 mb-3">Learn Machine Learning from industry experts.</p>
+          <div class="flex flex-wrap gap-2">
+            <a href="https://uncodemy.com/course/machine-learning-training-course-in-noida" target="_blank" class="btn-primary text-xs px-4 py-2 rounded-lg">Join ML Training – Noida</a>
+            <a href="https://uncodemy.com/course/machine-learning-training-course-in-delhi" target="_blank" class="btn-outline text-xs px-4 py-2 rounded-lg">Join ML Training – Delhi</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEARN ML -->
+      <div id="page-learn" class="page space-y-4">
+        <h1 class="text-lg font-semibold text-white">Learn Machine Learning</h1>
+        <p class="text-sm text-gray-400">KrishiMitra AI is powered by Machine Learning models. Upskill yourself with professional courses.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div class="glass rounded-2xl p-6 card-glow border border-accent-green/20">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-12 h-12 rounded-xl bg-accent-green/20 flex items-center justify-center text-2xl">📍</div>
+              <div>
+                <h2 class="text-base font-semibold text-white">Machine Learning Course</h2>
+                <p class="text-xs text-accent-green">Noida</p>
+              </div>
+            </div>
+            <p class="text-sm text-gray-400 mb-4">Comprehensive ML training covering supervised/unsupervised learning, neural networks, and real-world projects including agriculture use-cases.</p>
+            <ul class="text-xs text-gray-400 space-y-1 mb-5">
+              <li>✓ Hands-on projects</li>
+              <li>✓ Industry mentors</li>
+              <li>✓ Placement support</li>
+              <li>✓ Certificate on completion</li>
+            </ul>
+            <a href="https://uncodemy.com/course/machine-learning-training-course-in-noida" target="_blank" rel="noopener" class="btn-primary inline-block text-sm px-5 py-2.5 rounded-lg w-full text-center">View Course – Noida →</a>
+          </div>
+          <div class="glass rounded-2xl p-6 card-glow border border-accent-green/20">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-12 h-12 rounded-xl bg-accent-green/20 flex items-center justify-center text-2xl">📍</div>
+              <div>
+                <h2 class="text-base font-semibold text-white">Machine Learning Course</h2>
+                <p class="text-xs text-accent-green">Delhi</p>
+              </div>
+            </div>
+            <p class="text-sm text-gray-400 mb-4">Same high-quality ML curriculum available in Delhi. Perfect for students and professionals who want to master AI for agri-tech.</p>
+            <ul class="text-xs text-gray-400 space-y-1 mb-5">
+              <li>✓ Hands-on projects</li>
+              <li>✓ Industry mentors</li>
+              <li>✓ Placement support</li>
+              <li>✓ Certificate on completion</li>
+            </ul>
+            <a href="https://uncodemy.com/course/machine-learning-training-course-in-delhi" target="_blank" rel="noopener" class="btn-primary inline-block text-sm px-5 py-2.5 rounded-lg w-full text-center">View Course – Delhi →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div id="page-profile" class="page space-y-4">
+        <h1 class="text-lg font-semibold text-white">Profile</h1>
+        <div class="glass rounded-2xl p-6 card-glow max-w-lg">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-16 h-16 rounded-full bg-accent-green/30 flex items-center justify-center text-2xl font-bold text-accent-green" id="profile-avatar">R</div>
+            <div>
+              <div class="text-lg font-semibold text-white" id="profile-name">Farmer Rahul</div>
+              <div class="text-sm text-gray-400" id="profile-email">rahul@krishimitra.ai</div>
+              <div class="text-xs text-accent-green mt-1">Farmer Account</div>
+            </div>
+          </div>
+          <div class="space-y-3 text-sm">
+            <div class="flex justify-between py-2 border-b border-green-900/20"><span class="text-gray-400">Phone</span><span>+91-9876543210</span></div>
+            <div class="flex justify-between py-2 border-b border-green-900/20"><span class="text-gray-400">Location</span><span>Karnal, India</span></div>
+            <div class="flex justify-between py-2 border-b border-green-900/20"><span class="text-gray-400">Fields</span><span>3 Active</span></div>
+            <div class="flex justify-between py-2"><span class="text-gray-400">Member since</span><span>2024</span></div>
+          </div>
+          <div class="mt-6 flex gap-3">
+            <button onclick="alert('Edit Profile coming soon!')" class="btn-outline text-sm px-4 py-2 rounded-lg">Edit Profile</button>
+            <button onclick="logout()" class="text-sm px-4 py-2 rounded-lg text-red-400 border border-red-500/30 hover:bg-red-500/10">Logout</button>
+          </div>
+        </div>
+        <div class="glass rounded-2xl p-5 card-glow max-w-lg border border-accent-green/15">
+          <h3 class="text-sm font-semibold text-white mb-2">Recommended for you</h3>
+          <div class="flex flex-col gap-2 mt-2">
+            <a href="https://uncodemy.com/course/machine-learning-training-course-in-noida" target="_blank" class="link-uncodemy text-sm">→ Machine Learning Training in Noida</a>
+            <a href="https://uncodemy.com/course/machine-learning-training-course-in-delhi" target="_blank" class="link-uncodemy text-sm">→ Machine Learning Training in Delhi</a>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    let charts = {};
+
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      document.getElementById('login-modal').classList.add('hidden');
+      document.getElementById('user-name').textContent = 'Farmer Rahul';
+      document.getElementById('user-avatar').textContent = 'R';
+      loadDashboard();
+      loadFields();
+      initFullChat();
+    });
+
+    function logout() {
+      document.getElementById('login-modal').classList.remove('hidden');
+      showPage('dashboard');
+    }
+
+    function showPage(page) {
+      document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+      document.getElementById('page-' + page).classList.add('active');
+      document.querySelectorAll('.sidebar-item').forEach(function(b) { b.classList.remove('active'); });
+      var btn = document.querySelector('.sidebar-item[data-page="' + page + '"]');
+      if (btn) btn.classList.add('active');
+      if (page === 'analytics') setTimeout(initAnalyticsCharts, 100);
+    }
+
+    function loadDashboard() {
+      var data = {
+        yield_prediction: {
+          crop_yields: [
+            { crop: 'Maize', predicted: 5.2, historical: 4.8 },
+            { crop: 'Wheat', predicted: 4.5, historical: 4.1 },
+            { crop: 'Rice', predicted: 6.8, historical: 6.2 }
+          ],
+          current_year_prediction: 6.8,
+          chart_data: {
+            months: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'],
+            predicted: [3.2,3.8,4.5,5.1,5.6,6.0,6.3,6.5,6.7,6.8]
+          }
+        },
+        soil: { moisture_percent: 58.5, ph: 6.2 }
+      };
+      document.getElementById('stat-yield').textContent = data.yield_prediction.current_year_prediction;
+      document.getElementById('yield-big').textContent = data.yield_prediction.current_year_prediction;
+      document.getElementById('stat-moisture').textContent = data.soil.moisture_percent + '%';
+      document.getElementById('moisture-pct').textContent = data.soil.moisture_percent + '%';
+      document.getElementById('soil-ph').textContent = data.soil.ph;
+      document.getElementById('moisture-circle').style.strokeDashoffset = 251.2 * (1 - data.soil.moisture_percent / 100);
+      document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+      initDashboardCharts(data);
+    }
+
+    function initDashboardCharts(data) {
+      var crops = data.yield_prediction.crop_yields.map(function(c) { return c.crop; });
+      var predicted = data.yield_prediction.crop_yields.map(function(c) { return c.predicted; });
+      var historical = data.yield_prediction.crop_yields.map(function(c) { return c.historical; });
+      var cd = data.yield_prediction.chart_data;
+
+      if (charts.bar) charts.bar.destroy();
+      charts.bar = new Chart(document.getElementById('barChart'), {
+        type: 'bar',
+        data: {
+          labels: crops,
+          datasets: [
+            { label: 'Predicted', data: predicted, backgroundColor: '#22c55e', borderRadius: 5, barPercentage: 0.65 },
+            { label: 'Historical', data: historical, backgroundColor: '#a16207', borderRadius: 5, barPercentage: 0.65 }
+          ]
+        },
+        options: {
+          responsive: true, plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 11 } } },
+            y: { grid: { color: 'rgba(34,197,94,0.07)' }, ticks: { color: '#9ca3af', font: { size: 10 } }, beginAtZero: true, max: 10 }
+          }
+        }
+      });
+
+      if (charts.mini) charts.mini.destroy();
+      charts.mini = new Chart(document.getElementById('lineMiniChart'), {
+        type: 'line',
+        data: { labels: cd.months.slice(-6), datasets: [{ data: cd.predicted.slice(-6), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.12)', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2 }] },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+      });
+
+      if (charts.field) charts.field.destroy();
+      charts.field = new Chart(document.getElementById('fieldChart'), {
+        type: 'line',
+        data: { labels: Array(10).fill(''), datasets: [{ data: [4.2,4.8,5.1,5.5,5.8,6.0,6.2,6.4,6.6,6.8], borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2 }] },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false, min: 3, max: 8 } } }
+      });
+    }
+
+    function refreshYield() {
+      document.getElementById('last-updated').textContent = 'Refreshing...';
+      setTimeout(loadDashboard, 500);
+    }
+
+    function loadFields() {
+      var fields = [
+        { name: 'Alpha Farm', status: 'optimal', crop: 'Mixed (Maize, Wheat, Rice)', area: 2.5, yield: 6.8, location: 'Karnal, Haryana' },
+        { name: 'Beta Plot', status: 'warning', crop: 'Tomato', area: 1.2, yield: 4.1, location: 'Karnal, Haryana' },
+        { name: 'Gamma Field', status: 'optimal', crop: 'Wheat', area: 3.0, yield: 4.5, location: 'Near Karnal' }
+      ];
+      document.getElementById('fields-grid').innerHTML = fields.map(function(f) {
+        return '<div class="glass rounded-2xl p-5 card-glow cursor-pointer" onclick="alert(\'Field: ' + f.name + '\\nCrop: ' + f.crop + '\\nArea: ' + f.area + ' ha\\nYield: ' + f.yield + ' t/ha\')">' +
+          '<div class="flex items-center justify-between mb-3"><h3 class="font-semibold text-white">' + f.name + '</h3>' +
+          '<span class="status-dot ' + (f.status === 'optimal' ? 'bg-accent-green' : 'bg-yellow-500') + '"></span></div>' +
+          '<div class="text-xs text-gray-400 mb-1">' + f.location + '</div>' +
+          '<div class="text-sm text-gray-300 mb-3">' + f.crop + '</div>' +
+          '<div class="flex justify-between text-sm"><span class="text-gray-400">' + f.area + ' ha</span>' +
+          '<span class="font-semibold text-accent-green">' + f.yield + ' t/ha</span></div>' +
+          '<div class="mt-3 text-xs ' + (f.status === 'optimal' ? 'text-accent-green' : 'text-yellow-400') + '">Status: ' + f.status.charAt(0).toUpperCase() + f.status.slice(1) + '</div></div>';
+      }).join('');
+    }
+
+    function initFullChat() {
+      document.getElementById('full-chat-messages').innerHTML =
+        '<div class="chat-ai rounded-xl px-4 py-3 text-sm max-w-[85%]"><div class="text-xs text-accent-green mb-1">KrishiMitra AI</div>Namaste! Main aapka farming assistant hoon. Pests, irrigation, fertilizer, yield — kuch bhi poochho.</div>';
+    }
+
+    function addChatMessage(role, text) {
+      var box = document.getElementById('full-chat-messages');
+      var isUser = role === 'user';
+      box.innerHTML += '<div class="' + (isUser ? 'chat-user ml-auto' : 'chat-ai') + ' rounded-xl px-4 py-3 text-sm max-w-[85%]">' +
+        '<div class="text-xs ' + (isUser ? 'text-gray-400' : 'text-accent-green') + ' mb-1">' + (isUser ? 'You' : 'KrishiMitra AI') + '</div>' + text + '</div>';
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function sendFullChat() {
+      var input = document.getElementById('full-chat-input');
+      var msg = input.value.trim();
+      if (!msg) return;
+      input.value = '';
+      addChatMessage('user', msg);
+      setTimeout(function() { addChatMessage('assistant', offlineAI(msg)); }, 400);
+    }
+
+    function askAI(q) {
+      document.getElementById('full-chat-input').value = q;
+      sendFullChat();
+    }
+
+    function offlineAI(msg) {
+      var m = msg.toLowerCase();
+      if (m.indexOf('aphid') !== -1 || m.indexOf('pest') !== -1 || m.indexOf('tomato') !== -1)
+        return 'Symptoms se Aphids lag rahe hain. Neem oil spray (5ml/liter) har 7 din me lagao aur ladybugs introduce karo.';
+      if (m.indexOf('yield') !== -1 || m.indexOf('improve') !== -1)
+        return 'Yield badhane ke liye: 1) Certified seeds 2) Timely irrigation 3) Balanced NPK 4) Integrated pest management. Current prediction 6.8 t/ha hai.';
+      if (m.indexOf('irrigation') !== -1 || m.indexOf('water') !== -1)
+        return 'Abhi soil moisture 58.5% (optimal) hai. Next 2-3 din irrigation ki zaroorat nahi. Subah early drip irrigation best hai.';
+      if (m.indexOf('fertilizer') !== -1 || m.indexOf('npk') !== -1)
+        return 'NPK balanced hai (N:45, P:30, K:40). 12 din baad light dose de sakte ho. Organic compost bhi accha option hai.';
+      if (m.indexOf('hello') !== -1 || m.indexOf('hi') !== -1 || m.indexOf('namaste') !== -1)
+        return 'Namaste! Kaise madad kar sakta hoon aaj?';
+      return 'Main pests, irrigation, fertilizer, soil aur yield ke bare me madad kar sakta hoon. Thoda detail me batao.';
+    }
+
+    function sendQuickChat() {
+      var input = document.getElementById('quick-input');
+      var msg = input.value.trim();
+      if (!msg) return;
+      input.value = '';
+      var box = document.getElementById('quick-chat');
+      box.innerHTML += '<div class="chat-user rounded-lg px-3 py-2 text-xs ml-auto max-w-[90%]">' + msg + '</div>';
+      setTimeout(function() {
+        box.innerHTML += '<div class="chat-ai rounded-lg px-3 py-2 text-xs max-w-[90%]">' + offlineAI(msg) + '</div>';
+        box.scrollTop = box.scrollHeight;
+      }, 400);
+    }
+
+    function initAnalyticsCharts() {
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'];
+      if (charts.aYield) charts.aYield.destroy();
+      charts.aYield = new Chart(document.getElementById('analyticsYieldChart'), {
+        type: 'line',
+        data: {
+          labels: months,
+          datasets: [
+            { label: 'Predicted', data: [3.2,3.8,4.5,5.1,5.6,6.0,6.3,6.5,6.7,6.8], borderColor: '#22c55e', tension: 0.3, fill: false },
+            { label: 'Historical', data: [2.9,3.4,4.1,4.6,5.0,5.4,5.7,5.9,6.1,6.2], borderColor: '#a16207', tension: 0.3, fill: false }
+          ]
+        },
+        options: { responsive: true, plugins: { legend: { labels: { color: '#9ca3af' } } }, scales: { x: { ticks: { color: '#9ca3af' } }, y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(34,197,94,0.07)' } } } }
+      });
+      if (charts.aBar) charts.aBar.destroy();
+      charts.aBar = new Chart(document.getElementById('analyticsBarChart'), {
+        type: 'bar',
+        data: {
+          labels: ['Maize', 'Wheat', 'Rice'],
+          datasets: [
+            { label: '2024 Predicted', data: [5.2, 4.5, 6.8], backgroundColor: '#22c55e', borderRadius: 4 },
+            { label: '2023 Actual', data: [4.8, 4.1, 6.2], backgroundColor: '#64748b', borderRadius: 4 }
+          ]
+        },
+        options: { responsive: true, plugins: { legend: { labels: { color: '#9ca3af' } } }, scales: { x: { ticks: { color: '#9ca3af' } }, y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(34,197,94,0.07)' } } } }
+      });
+    }
+
+    function handleSearch(e) {
+      if (e.key !== 'Enter') return;
+      var q = e.target.value.toLowerCase();
+      if (q.indexOf('pest') !== -1 || q.indexOf('chat') !== -1 || q.indexOf('tomato') !== -1) showPage('chat');
+      else if (q.indexOf('field') !== -1 || q.indexOf('farm') !== -1) showPage('fields');
+      else if (q.indexOf('analytic') !== -1 || q.indexOf('chart') !== -1 || q.indexOf('yield') !== -1) showPage('analytics');
+      else if (q.indexOf('learn') !== -1 || q.indexOf('course') !== -1 || q.indexOf('ml') !== -1) showPage('learn');
+      else if (q.indexOf('profile') !== -1) showPage('profile');
+      else showPage('dashboard');
+      e.target.value = '';
+    }
+  </script>
+</body>
+</html>
